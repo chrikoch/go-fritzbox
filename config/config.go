@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	BoxURL string
+	BoxURL   string
+	Password string
 }
 
 //Read a config in JSON format from filname and return as Config struct
