@@ -2,7 +2,9 @@ package auth
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -26,19 +28,29 @@ type Authenticator struct {
 	Config config.Config
 }
 
-func (a *Authenticator) GetResponse() (resonse string, err error) {
+func (a *Authenticator) GetResponse() (response string, err error) {
 	challenge, err := a.GetNewChallenge()
 
 	if err != nil {
 		return "", nil
 	}
 
-	unhashed := challenge + "-" + a.Config.Password
+	return calculateResponse(challenge, a.Config.Password), nil
+}
+
+func calculateResponse(challenge, password string) (response string) {
+	unhashed := challenge + "-" + password
+
 	//now replace every rune > 255
 	unhashed = replaceInvalidChallengeRunes(unhashed)
 
-	log.Println(unhashed)
-	return unhashed, nil
+	unhashedUtf16 := utf8stringToUtf16Le(unhashed)
+	hashed := md5.Sum(unhashedUtf16)
+
+	response = fmt.Sprintf("%x", hashed)
+	log.Println(response)
+
+	return challenge + "-" + response
 }
 
 func utf8stringToUtf16Le(s string) []byte {
