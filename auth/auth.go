@@ -28,8 +28,10 @@ type Authenticator struct {
 	Config config.Config
 }
 
-func (a *Authenticator) GetResponse() (response string, err error) {
-	challenge, err := a.GetNewChallenge()
+const InvalidSessionId = "0000000000000000"
+
+func (a *Authenticator) response() (response string, err error) {
+	challenge, err := a.newChallenge()
 
 	if err != nil {
 		return "", nil
@@ -76,7 +78,54 @@ func replaceInvalidChallengeRunes(s string) string {
 
 }
 
-func (a *Authenticator) GetNewChallenge() (challenge string, err error) {
+func (a *Authenticator) SessionId() string {
+
+	//TODO error handling
+
+	req, _ := http.NewRequest("GET", "http://"+a.Config.BoxURL+"/login_sid.lua", nil)
+	query := req.URL.Query()
+
+	response, _ := a.response()
+	query.Add("response", response)
+	query.Add("username", "")
+
+	req.URL.RawQuery = query.Encode()
+
+	log.Println(req.URL.RawQuery)
+
+	log.Println(req.URL.Host + " " + req.URL.Path + "  " + req.URL.RawQuery)
+
+	var client http.Client
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		// handle error
+		log.Println(err)
+		return InvalidSessionId
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	log.Printf("%v\n", string(body))
+
+	var info FritzBoxSessionInfo
+
+	err = xml.Unmarshal(body, &info)
+	if err != nil {
+		log.Println(err)
+		return InvalidSessionId
+	}
+
+	log.Println(info)
+
+	log.Println(info.Challenge)
+
+	return info.Challenge
+
+}
+
+func (a *Authenticator) newChallenge() (challenge string, err error) {
 	resp, err := http.Get("http://" + a.Config.BoxURL + "/login_sid.lua")
 	if err != nil {
 		// handle error
