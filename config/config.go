@@ -11,6 +11,14 @@ type Config struct {
 	Password string
 }
 
+func (c *Config) LoginUrl() string {
+	return "http://" + c.BoxURL + "/login_sid.lua"
+}
+
+func (c *Config) HomeAutomationUrl() string {
+	return "http://" + c.BoxURL + "/webservices/homeautoswitch.lua"
+}
+
 //Read a config in JSON format from filname and return as Config struct
 func New(filename string) (Config, error) {
 	var c Config

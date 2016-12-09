@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
@@ -25,16 +26,19 @@ type FritzBoxSessionInfo struct {
 }
 
 type Authenticator struct {
-	Config config.Config
+	Config                config.Config
+	sessionId             string
+	sessionIdCreationTime time.Time
 }
 
 const InvalidSessionId = "0000000000000000"
+const SessionLifeTime = time.Minute * 60
 
 func (a *Authenticator) response() (response string, err error) {
 	challenge, err := a.newChallenge()
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return calculateResponse(challenge, a.Config.Password), nil
@@ -50,7 +54,6 @@ func calculateResponse(challenge, password string) (response string) {
 	hashed := md5.Sum(unhashedUtf16)
 
 	response = fmt.Sprintf("%x", hashed)
-	log.Println(response)
 
 	return challenge + "-" + response
 }
@@ -78,76 +81,92 @@ func replaceInvalidChallengeRunes(s string) string {
 
 }
 
-func (a *Authenticator) SessionId() string {
+func (a *Authenticator) SessionId(minRemainingLifeTime time.Duration) string {
 
-	//TODO error handling
+	//sessionId set and EndOfLife is still longer than minimum remainder?
+	if a.sessionId != InvalidSessionId &&
+		(a.sessionIdCreationTime.Add(SessionLifeTime).After(time.Now().Add(minRemainingLifeTime))) {
+		return a.sessionId
+	}
 
-	req, _ := http.NewRequest("GET", "http://"+a.Config.BoxURL+"/login_sid.lua", nil)
+	//we have to get a new sessionID!
+	id, err := a.newSessionId()
+	if err != nil {
+		log.Println(err)
+		a.sessionId = InvalidSessionId
+		a.sessionIdCreationTime = time.Time{}
+
+	} else {
+		a.sessionId = id
+		a.sessionIdCreationTime = time.Now()
+	}
+
+	return a.sessionId
+}
+
+func (a *Authenticator) newSessionId() (string, error) {
+	req, err := http.NewRequest("GET", a.Config.LoginUrl(), nil)
+	if err != nil {
+		log.Println(err)
+		return InvalidSessionId, err
+	}
+
 	query := req.URL.Query()
 
-	response, _ := a.response()
+	response, err := a.response()
+	if err != nil {
+		log.Println(err)
+		return InvalidSessionId, err
+	}
+
 	query.Add("response", response)
 	query.Add("username", "")
 
 	req.URL.RawQuery = query.Encode()
 
-	log.Println(req.URL.RawQuery)
-
-	log.Println(req.URL.Host + " " + req.URL.Path + "  " + req.URL.RawQuery)
-
 	var client http.Client
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-		// handle error
 		log.Println(err)
-		return InvalidSessionId
+		return InvalidSessionId, err
 	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-
-	log.Printf("%v\n", string(body))
+	if err != nil {
+		log.Println(err)
+		return InvalidSessionId, err
+	}
 
 	var info FritzBoxSessionInfo
 
 	err = xml.Unmarshal(body, &info)
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId
+		return InvalidSessionId, err
 	}
 
-	log.Println(info)
-
-	log.Println(info.Challenge)
-
-	return info.Challenge
+	return info.SID, nil
 
 }
 
 func (a *Authenticator) newChallenge() (challenge string, err error) {
-	resp, err := http.Get("http://" + a.Config.BoxURL + "/login_sid.lua")
+	resp, err := http.Get(a.Config.LoginUrl())
 	if err != nil {
-		// handle error
 		log.Println(err)
 		return "", err
 	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	log.Printf("%v\n", string(body))
-
 	var info FritzBoxSessionInfo
-
 	err = xml.Unmarshal(body, &info)
 	if err != nil {
 		log.Println(err)
 		return "", err
 	}
-
-	log.Println(info)
-
-	log.Println(info.Challenge)
 
 	return info.Challenge, nil
 }
