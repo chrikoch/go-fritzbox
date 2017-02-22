@@ -15,7 +15,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"gitlab.com/chri.koch/fritzbox_util/config"
+	"github.com/chrikoch/go-fritzbox/config"
 )
 
 type FritzBoxSessionInfo struct {
