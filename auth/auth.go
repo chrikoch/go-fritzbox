@@ -18,21 +18,22 @@ import (
 	"github.com/chrikoch/go-fritzbox/config"
 )
 
-type FritzBoxSessionInfo struct {
+type fritzBoxSessionInfo struct {
 	XMLName   xml.Name `xml:SessionInfo`
 	SID       string
 	Challenge string `xml:Challenge`
 	BlockTime int64
 }
 
+// Authenticator is used to retrive a valid session id
 type Authenticator struct {
 	Config                config.Config
-	sessionId             string
-	sessionIdCreationTime time.Time
+	sessionID             string
+	sessionIDCreationTime time.Time
 }
 
-const InvalidSessionId = "0000000000000000"
-const SessionLifeTime = time.Minute * 60
+const invalidSessionID = "0000000000000000"
+const sessionLifeTime = time.Minute * 60
 
 func (a *Authenticator) response() (response string, err error) {
 	challenge, err := a.newChallenge()
@@ -74,41 +75,42 @@ func replaceInvalidChallengeRunes(s string) string {
 	return strings.Map(func(r rune) rune {
 		if r > 255 {
 			return '.'
-		} else {
-			return r
 		}
+		return r
+
 	}, s)
 
 }
 
-func (a *Authenticator) SessionId(minRemainingLifeTime time.Duration) string {
+// SessionID returns a valid sessionID, valid for at least minRemainingLifeTime
+func (a *Authenticator) SessionID(minRemainingLifeTime time.Duration) string {
 
 	//sessionId set and EndOfLife is still longer than minimum remainder?
-	if a.sessionId != InvalidSessionId &&
-		(a.sessionIdCreationTime.Add(SessionLifeTime).After(time.Now().Add(minRemainingLifeTime))) {
-		return a.sessionId
+	if a.sessionID != invalidSessionID &&
+		(a.sessionIDCreationTime.Add(sessionLifeTime).After(time.Now().Add(minRemainingLifeTime))) {
+		return a.sessionID
 	}
 
 	//we have to get a new sessionID!
-	id, err := a.newSessionId()
+	id, err := a.newSessionID()
 	if err != nil {
 		log.Println(err)
-		a.sessionId = InvalidSessionId
-		a.sessionIdCreationTime = time.Time{}
+		a.sessionID = invalidSessionID
+		a.sessionIDCreationTime = time.Time{}
 
 	} else {
-		a.sessionId = id
-		a.sessionIdCreationTime = time.Now()
+		a.sessionID = id
+		a.sessionIDCreationTime = time.Now()
 	}
 
-	return a.sessionId
+	return a.sessionID
 }
 
-func (a *Authenticator) newSessionId() (string, error) {
+func (a *Authenticator) newSessionID() (string, error) {
 	req, err := http.NewRequest("GET", a.Config.LoginUrl(), nil)
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId, err
+		return invalidSessionID, err
 	}
 
 	query := req.URL.Query()
@@ -116,7 +118,7 @@ func (a *Authenticator) newSessionId() (string, error) {
 	response, err := a.response()
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId, err
+		return invalidSessionID, err
 	}
 
 	query.Add("response", response)
@@ -129,22 +131,22 @@ func (a *Authenticator) newSessionId() (string, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId, err
+		return invalidSessionID, err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId, err
+		return invalidSessionID, err
 	}
 
-	var info FritzBoxSessionInfo
+	var info fritzBoxSessionInfo
 
 	err = xml.Unmarshal(body, &info)
 	if err != nil {
 		log.Println(err)
-		return InvalidSessionId, err
+		return invalidSessionID, err
 	}
 
 	return info.SID, nil
@@ -161,7 +163,7 @@ func (a *Authenticator) newChallenge() (challenge string, err error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	var info FritzBoxSessionInfo
+	var info fritzBoxSessionInfo
 	err = xml.Unmarshal(body, &info)
 	if err != nil {
 		log.Println(err)
