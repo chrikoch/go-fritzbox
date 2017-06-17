@@ -16,7 +16,7 @@ type HomeAutomation struct {
 
 //Returns current powerconsumption auf AIN as mW
 func (h *HomeAutomation) CurrentPowerConsumption(sessionId, ain string) (power int, err error) {
-	req, err := http.NewRequest("GET", h.Config.HomeAutomationUrl(), nil)
+	req, err := http.NewRequest("GET", h.Config.HomeAutomationURL(), nil)
 	if err != nil {
 		log.Println(err)
 		return 0, err
@@ -50,7 +50,7 @@ func (h *HomeAutomation) CurrentPowerConsumption(sessionId, ain string) (power i
 }
 
 func (h *HomeAutomation) SwitchList(sessionId string) {
-	req, err := http.NewRequest("GET", h.Config.HomeAutomationUrl(), nil)
+	req, err := http.NewRequest("GET", h.Config.HomeAutomationURL(), nil)
 	if err != nil {
 		log.Println(err)
 		return //InvalidSessionId, err

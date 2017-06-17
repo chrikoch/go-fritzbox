@@ -107,7 +107,7 @@ func (a *Authenticator) SessionID(minRemainingLifeTime time.Duration) string {
 }
 
 func (a *Authenticator) newSessionID() (string, error) {
-	req, err := http.NewRequest("GET", a.Config.LoginUrl(), nil)
+	req, err := http.NewRequest("GET", a.Config.LoginURL(), nil)
 	if err != nil {
 		log.Println(err)
 		return invalidSessionID, err
@@ -154,7 +154,7 @@ func (a *Authenticator) newSessionID() (string, error) {
 }
 
 func (a *Authenticator) newChallenge() (challenge string, err error) {
-	resp, err := http.Get(a.Config.LoginUrl())
+	resp, err := http.Get(a.Config.LoginURL())
 	if err != nil {
 		log.Println(err)
 		return "", err
