@@ -10,12 +10,13 @@ import (
 	"github.com/chrikoch/go-fritzbox/config"
 )
 
+//HomeAutomation is used to contact the home automation webservices of FritzBox
 type HomeAutomation struct {
-	Config config.Config
+	Config config.Config //must be a valid config
 }
 
-//Returns current powerconsumption auf AIN as mW
-func (h *HomeAutomation) CurrentPowerConsumption(sessionId, ain string) (power int, err error) {
+//CurrentPowerConsumption returns current powerconsumption auf AIN as mW
+func (h *HomeAutomation) CurrentPowerConsumption(sessionID, ain string) (power int, err error) {
 	req, err := http.NewRequest("GET", h.Config.HomeAutomationURL(), nil)
 	if err != nil {
 		log.Println(err)
@@ -25,7 +26,7 @@ func (h *HomeAutomation) CurrentPowerConsumption(sessionId, ain string) (power i
 	query := req.URL.Query()
 
 	query.Add("switchcmd", "getswitchpower")
-	query.Add("sid", sessionId)
+	query.Add("sid", sessionID)
 	query.Add("ain", ain)
 
 	req.URL.RawQuery = query.Encode()
@@ -49,7 +50,8 @@ func (h *HomeAutomation) CurrentPowerConsumption(sessionId, ain string) (power i
 	return strconv.Atoi(strings.TrimSpace(string(body)))
 }
 
-func (h *HomeAutomation) SwitchList(sessionId string) {
+//SwitchList logs a list of available switches
+func (h *HomeAutomation) SwitchList(sessionID string) {
 	req, err := http.NewRequest("GET", h.Config.HomeAutomationURL(), nil)
 	if err != nil {
 		log.Println(err)
@@ -59,7 +61,7 @@ func (h *HomeAutomation) SwitchList(sessionId string) {
 	query := req.URL.Query()
 
 	query.Add("switchcmd", "getswitchlist")
-	query.Add("sid", sessionId)
+	query.Add("sid", sessionID)
 
 	req.URL.RawQuery = query.Encode()
 
