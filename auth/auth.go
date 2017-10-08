@@ -19,9 +19,9 @@ import (
 )
 
 type fritzBoxSessionInfo struct {
-	XMLName   xml.Name `xml:SessionInfo`
+	XMLName   xml.Name `xml:"SessionInfo"`
 	SID       string
-	Challenge string `xml:Challenge`
+	Challenge string `xml:"Challenge"`
 	BlockTime int64
 }
 
