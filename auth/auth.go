@@ -162,6 +162,9 @@ func (a *Authenticator) newChallenge() (challenge string, err error) {
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil
+	}
 
 	var info fritzBoxSessionInfo
 	err = xml.Unmarshal(body, &info)
