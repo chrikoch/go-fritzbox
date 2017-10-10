@@ -19,9 +19,9 @@ import (
 )
 
 type fritzBoxSessionInfo struct {
-	XMLName   xml.Name `xml:SessionInfo`
+	XMLName   xml.Name `xml:"SessionInfo"`
 	SID       string
-	Challenge string `xml:Challenge`
+	Challenge string `xml:"Challenge"`
 	BlockTime int64
 }
 
@@ -162,6 +162,9 @@ func (a *Authenticator) newChallenge() (challenge string, err error) {
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil
+	}
 
 	var info fritzBoxSessionInfo
 	err = xml.Unmarshal(body, &info)
