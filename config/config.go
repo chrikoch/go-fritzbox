@@ -4,6 +4,7 @@ package config
 //Config holds the Config of the FritzBox
 type Config struct {
 	BoxURL   string //URL of FritzBox
+	Username string //Username used to login on FritzBox
 	Password string //Password used to login on FritzBox
 }
 

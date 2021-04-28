@@ -122,7 +122,7 @@ func (a *Authenticator) newSessionID() (string, error) {
 	}
 
 	query.Add("response", response)
-	query.Add("username", "")
+	query.Add("username", a.Config.Username)
 
 	req.URL.RawQuery = query.Encode()
 
